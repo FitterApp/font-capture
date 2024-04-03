@@ -5,46 +5,49 @@ import { saveAs } from "file-saver";
 function App() {
   const [fontUrl, setFontUrl] = useState("");
   const [fontName, setFontName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const extractFontName = (fontUrl) => {
-    // Example URL: https://fonts.googleapis.com/css2?family=Rubik+Doodle+Shadow&display=swap
-    const regex = /family=([^:&]+)/;
-    const matches = fontUrl.match(regex);
-    return matches && matches[1].replace(/\+/g, " ");
+  // Updated to handle Google Fonts share URL
+  const extractAndLoadFonts = (shareUrl) => {
+    const fontNames = extractFontNamesFromShareURL(shareUrl);
+    const cssURL = generateGoogleFontsCSSURL(fontNames);
+
+    setIsLoading(true);
+
+    loadGoogleFont(cssURL, fontNames[0]); // Load the first font for simplicity
+
+    setFontName(fontNames[0]);
   };
 
-  const handleLoadFont = () => {
-    const name = extractFontName(fontUrl);
-    setFontName(name);
-    loadGoogleFont(name);
+  const extractFontNamesFromShareURL = (shareUrl) => {
+    const params = new URLSearchParams(shareUrl.split("?")[1]);
+    const selection = params.get("selection.family");
+    if (!selection) return [];
+    return selection
+      .split("|")
+      .map((family) => family.split(":")[0].replace(/\+/g, " "));
   };
 
-  const loadGoogleFont = (fontName) => {
+  const generateGoogleFontsCSSURL = (fontNames) => {
+    const families = fontNames.map((name) => name.replace(/\s+/g, "+"));
+    return `https://fonts.googleapis.com/css2?family=${families.join(
+      "&family="
+    )}&display=swap`;
+  };
+
+  const loadGoogleFont = (cssURL, exampleFontName) => {
     const link = document.createElement("link");
-    link.href = fontUrl;
+    link.href = cssURL;
     link.rel = "stylesheet";
     link.crossOrigin = "anonymous";
     document.head.appendChild(link);
 
-    document.fonts.load(`10pt "${fontName}"`).then(() => {
-      injectCustomCSS(fontName);
+    document.fonts.load(`10pt "${exampleFontName}"`).then(() => {
       setTimeout(() => {
-        captureText(fontName);
-      }, 400);
+        captureText(exampleFontName);
+        setIsLoading(false);
+      }, 750);
     });
-  };
-
-  const injectCustomCSS = (fontName) => {
-    const style = document.createElement("style");
-    style.type = "text/css";
-    style.innerHTML = `
-        @font-face {
-            font-family: "${fontName}", system-ui;
-            font-weight: 400;
-            font-style: normal;
-        }
-    `;
-    document.head.appendChild(style);
   };
 
   const captureText = (fontName) => {
@@ -65,15 +68,17 @@ function App() {
         type="text"
         value={fontUrl}
         onChange={(e) => setFontUrl(e.target.value)}
-        placeholder="Enter Google Fonts URL"
+        placeholder="Enter Google Fonts Share URL"
       />
-      <button onClick={handleLoadFont}>Load and Capture Font</button>
+      <button disabled={isLoading} onClick={() => extractAndLoadFonts(fontUrl)}>
+        {isLoading ? "loading..." : "Load and Capture Font"}
+      </button>
       <div style={{ display: "flex" }}>
         <div
           id="displayArea"
           style={{
-            fontFamily: fontName,
-            fontSize: "24px",
+            fontFamily: fontName, // This sets the family to the first one for simplicity
+            fontSize: "64px",
           }}
         >
           {fontName}
