@@ -4,20 +4,8 @@ import { saveAs } from "file-saver";
 
 function App() {
   const [fontUrl, setFontUrl] = useState("");
-  const [fontName, setFontName] = useState("");
+  const [fontNames, setFontNames] = useState([]); // Use an array to store font names
   const [isLoading, setIsLoading] = useState(false);
-
-  // Updated to handle Google Fonts share URL
-  const extractAndLoadFonts = (shareUrl) => {
-    const fontNames = extractFontNamesFromShareURL(shareUrl);
-    const cssURL = generateGoogleFontsCSSURL(fontNames);
-
-    setIsLoading(true);
-
-    loadGoogleFont(cssURL, fontNames[0]); // Load the first font for simplicity
-
-    setFontName(fontNames[0]);
-  };
 
   const extractFontNamesFromShareURL = (shareUrl) => {
     const params = new URLSearchParams(shareUrl.split("?")[1]);
@@ -35,25 +23,27 @@ function App() {
     )}&display=swap`;
   };
 
-  const loadGoogleFont = (cssURL, exampleFontName) => {
+  const extractAndLoadFonts = (shareUrl) => {
+    const extractedFontNames = extractFontNamesFromShareURL(shareUrl);
+    const cssURL = generateGoogleFontsCSSURL(extractedFontNames);
+    setIsLoading(true);
+    loadGoogleFont(cssURL);
+    setFontNames(extractedFontNames); // Store all font names
+  };
+
+  // Load the CSS for all fonts but don't capture automatically
+  const loadGoogleFont = (cssURL) => {
     const link = document.createElement("link");
     link.href = cssURL;
     link.rel = "stylesheet";
     link.crossOrigin = "anonymous";
     document.head.appendChild(link);
-
-    document.fonts.load(`10pt "${exampleFontName}"`).then(() => {
-      setTimeout(() => {
-        captureText(exampleFontName);
-        setIsLoading(false);
-      }, 750);
-    });
+    setIsLoading(false);
   };
 
-  const captureText = (fontName) => {
-    const displayArea = document.getElementById("displayArea");
+  const captureAndDownload = (fontName) => {
     htmlToImage
-      .toPng(displayArea)
+      .toPng(document.getElementById(fontName))
       .then(function (dataUrl) {
         saveAs(dataUrl, `${fontName}.png`);
       })
@@ -71,18 +61,25 @@ function App() {
         placeholder="Enter Google Fonts Share URL"
       />
       <button disabled={isLoading} onClick={() => extractAndLoadFonts(fontUrl)}>
-        {isLoading ? "loading..." : "Load and Capture Font"}
+        {isLoading ? "Loading..." : "Load Fonts"}
       </button>
-      <div style={{ display: "flex" }}>
-        <div
-          id="displayArea"
-          style={{
-            fontFamily: fontName, // This sets the family to the first one for simplicity
-            fontSize: "64px",
-          }}
-        >
-          {fontName}
-        </div>
+      <div>
+        {fontNames.map((fontName, index) => (
+          <div key={index} style={{ marginBottom: "20px" }}>
+            <div
+              id={fontName} // Use the font name as the ID for unique identification
+              style={{
+                fontFamily: fontName,
+                fontSize: "64px",
+              }}
+            >
+              {fontName}
+            </div>
+            <button onClick={() => captureAndDownload(fontName)}>
+              Download Image
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
