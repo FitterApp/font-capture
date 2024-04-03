@@ -64,8 +64,15 @@ function App() {
         {isLoading ? "Loading..." : "Load Fonts"}
       </button>
       <div>
-        {fontNames.map((fontName, index) => (
-          <div key={index} style={{ marginBottom: "20px" }}>
+        {fontNames.map((fontName, index) => [
+          <div
+            key={index}
+            style={{
+              marginBottom: "20px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
             <div
               id={fontName} // Use the font name as the ID for unique identification
               style={{
@@ -75,11 +82,11 @@ function App() {
             >
               {fontName}
             </div>
-            <button onClick={() => captureAndDownload(fontName)}>
-              Download Image
-            </button>
-          </div>
-        ))}
+          </div>,
+          <button onClick={() => captureAndDownload(fontName)}>
+            Download Image
+          </button>,
+        ])}
       </div>
     </div>
   );
